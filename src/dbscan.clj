@@ -1,5 +1,6 @@
 (ns dbscan
-  (:require [clojure.string :as str] [clojure.set :as set] [criterium.core :as crit]))
+  (:require [clojure.string :as str] [clojure.set :as set] [criterium.core :as crit])
+  (:gen-class))
 
 (defprotocol APos
   (score [p])
@@ -22,9 +23,6 @@
                     y-dist (unchecked-subtract-int y-cor (y p2))]
                 (unchecked-add-int (unchecked-multiply-int x-dist x-dist) (unchecked-multiply-int y-dist y-dist)))))
 
-(def ^:dynamic *score* 0)
-(def ^:dynamic *size* 10)
-
 (defn make-pos [x y score]
   (Pos. (int x) (int y) (int score) (hash {:x x :y y :score score})))
 
@@ -38,7 +36,8 @@
 (defn get-neighbors [p, eps, coors]
   (doall (filter #(<= (distance p %) eps) coors)))
 
-(def coors (filter #(>= (score %) *score*)(parse-coors "C:\\bin\\lights.coors")))
+(defn cs [fn sc]
+  (filter #(>= (score %) sc)(parse-coors fn)))
 
 (defn get-x-y [p size]
   [(int (/ (x p) size)) (int (/ (y p) size))])
@@ -89,7 +88,8 @@
           (recur (rest coors) (add-to-scaled-3d-vector xs y-vec p size)))
         (vec (map #(persistent! %) (persistent! xs))))))) 
 
-(def coors2 (cluster coors *size*))
+(defn coors2 [c pcs]
+  (cluster c pcs))
 
 (defn make-cluster [p eps min-pts coors size coors-map quad-eps]
   (loop [cluster []
@@ -132,3 +132,21 @@
                                                                               cluster))) 
                                                                 clusters))))))
 
+(defn -main
+  ([]
+    (-main "lights.coors" "clustered.coors"))
+  ([iF oF]
+    (-main iF oF "20" "5"))
+  ([iF oF eps minPts]
+    (-main iF oF eps minPts "100"))
+  ([iF oF eps minPts score]
+    (-main iF oF eps minPts score "10"))
+  ([iF oF eps minPts score pcs]
+	  (let [c (cs iF (read-string score))
+	        preClusterSize (read-string pcs)
+	        c2 (coors2 c preClusterSize)]
+     (print-to-csv 
+       (dbscan (read-string eps) (read-string minPts) c preClusterSize c2)
+       oF)))
+  )
+  

@@ -4,4 +4,6 @@
                  [criterium "0.2.1"]]
   :dev-dependencies [
                      [lein-eclipse "1.0.0"]]
+  :main dbscan
+  :aot [dbscan]
 )
